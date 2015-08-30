@@ -1,0 +1,3 @@
+https://s3.amazonaws.com/metro-extracts.mapzen.com/raleigh_north-carolina.osm.bz2
+
+The above link gives the extract for Raleigh, NC. I chose it as it's unzipped version met the size requirements for the project and it was not a huge file.
