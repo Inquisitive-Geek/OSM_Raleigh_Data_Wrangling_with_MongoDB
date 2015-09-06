@@ -13,9 +13,9 @@
     <section class="page-header">
       <h1 class="project-name">OpenStreeMaps Raleigh, NC Data Wrangling With MongoDB</h1>
       <h2 class="project-tagline">OSM data extract of Raleigh Area has been cleaned and loaded into MongoDB instance for analysis</h2>
-      <a href="https://github.com/Inquisitive-Geek/OpenStreetMaps_Raleigh_Data_Wrangling_with_MongoDB" class="btn">View on GitHub</a>
-      <a href="https://github.com/Inquisitive-Geek/OpenStreetMaps_Raleigh_Data_Wrangling_with_MongoDB/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/Inquisitive-Geek/OpenStreetMaps_Raleigh_Data_Wrangling_with_MongoDB/tarball/master" class="btn">Download .tar.gz</a>
+      <a href="https://github.com/Inquisitive-Geek/OSM_Raleigh_Data_Wrangling_with_MongoDB" class="btn">View on GitHub</a>
+      <a href="https://github.com/Inquisitive-Geek/OSM_Raleigh_Data_Wrangling_with_MongoDB/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/Inquisitive-Geek/OSM_Raleigh_Data_Wrangling_with_MongoDB/tarball/master" class="btn">Download .tar.gz</a>
     </section>
 
     <section class="main-content">
@@ -25,22 +25,155 @@
 <p>Using a <a href="https://www.openstreetmap.org">Open Street Maps</a> extract of Raleigh, NC from <a href="https://s3.amazonaws.com/metro-extracts.mapzen.com/raleigh_north-carolina.osm.bz2">MapZen</a>, data munging techniques - such as assessing the quality of the data for validity, accuracy, completeness, consistency and uniformity - were used to clean the OpenStreetMap data and were loaded into a MongoDB instance. MongoDB queries were then run to analyze the data. The data validation and audit was performed in Python. The code and other extracts can be downloaded using the 'Download .zip' link above.</p>
 
 <h3>
-<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<a id="problems-encountered-in-the-map" class="anchor" href="#problems-encountered-in-the-map" aria-hidden="true"><span class="octicon octicon-link"></span></a>Problems Encountered in the Map</h3>
 
-<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+<p>After initially downloading a small sample size of the Raleigh data and running it against a provisional data.py file, I noticed three main problems with the data, which I will discuss in the following order:</p>
+
+<ul>
+<li>
+<em>Multiple streets for a node:</em> A university like NCSU has multiple streets in it. But the street keys aren’t of the form “addr:street”. In such cases, the data is still cleaned for the streets but they are not added to an address dictionary value. Instead, the keys are kept as is.</li>
+<li>
+<em>Relation nodes:</em> There are some nodes who have element names as ‘Relation’. They are handled in a similar way as ways and nodes.</li>
+<li>
+<em>Postal codes:</em> There are a lot of postal codes which don’t pertain to Raleigh, NC. Some investigation is done around it to find out the root cause.</li>
+</ul>
+
+<h4>
+<a id="multiple-streets-for-a-node-" class="anchor" href="#multiple-streets-for-a-node-" aria-hidden="true"><span class="octicon octicon-link"></span></a>*<em>Multiple streets for a node *</em>
+</h4>
+
+<p>There are some tags which contain field values like “Street_1” and “Street_2”. They seem be the adjoining streets of a building and hence the attributes are kept as they are. </p>
+
+<h4>
+<a id="postal-codes" class="anchor" href="#postal-codes" aria-hidden="true"><span class="octicon octicon-link"></span></a><strong>Postal codes</strong>
+</h4>
+
+<p>Raleigh postal codes are in this range - 27587, 27601, 27605, 27608, 27609, 27612, 27613, 27614, 27615, 27616.[3] The database contains a lot of other values though. A lot of postal codes don’t refer to Raleigh, NC but the surrounding areas. </p>
+
+<pre><code>&gt;&gt;&gt; x_post_code = db.data.aggregate([{"$match":{"address.postcode":{"$exists":1}}}, {"$group":{"_id":"$address.postcode", "count":{"$sum":1}}}, {"$sort":{"count":1}}])
+&gt;&gt;&gt; list_post = list(x_post_code)
+&gt;&gt;&gt; for i in list_post: print i['_id']
+</code></pre>
+
+<p>A subset of the results is shown here:
+27612-7156
+27612-3326
+27519-6205
+27511-5928</p>
+
+<p>In the above list, many postal codes like 27519, 27511 are not in Raleigh. 
+A query to find the list of cities confirms it too.</p>
+
+<pre><code>&gt;&gt;&gt; x_city = db.data.aggregate([{"$match":{"address.city":{"$exists":1}}}, {"$group":{"_id":"$address.city", "count":{"$
+&gt;&gt;&gt; x_city_l = list(x_city)
+&gt;&gt;&gt; x_city_l
+[{u'count': 1, u'_id': u'cary'}, {u'count': 1, u'_id': u'Ra'}, {u'count': 1, u'_id': u'Apex'}, {u'count': 2, u'_id': u'W
+ake Forest'}, {u'count': 2, u'_id': u'durham'}, {u'count': 2, u'_id': u'chapel Hill'}, {u'count': 2, u'_id': u'raleigh'}
+, {u'count': 108, u'_id': u'Morrisville'}, {u'count': 236, u'_id': u'Chapel Hill'}, {u'count': 279, u'_id': u'Carrboro'}
+, {u'count': 885, u'_id': u'Raleigh'}, {u'count': 1295, u'_id': u'Durham'}, {u'count': 1745, u'_id': u'Cary'}]
+</code></pre>
+
+<p>Cities like Apex and Morrisville which are around Raleigh are also included in this extract. So the data gives info of Raleigh and its surrounding areas.</p>
 
 <h3>
-<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating pages manually</h3>
+<a id="data-overview" class="anchor" href="#data-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Overview</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p>This section contains basic statistics about the dataset and the MongoDB queries used to gather them.</p>
+
+<h4>
+<a id="file-sizes" class="anchor" href="#file-sizes" aria-hidden="true"><span class="octicon octicon-link"></span></a>File sizes</h4>
+
+<p>raleigh_north-carolina.osm……………………………………… 518045444 Bytes </p>
+
+<pre><code># Finding out the file size
+&gt;&gt;&gt; import os
+&gt;&gt;&gt; statinfo = os.stat('new-york_new-york.osm')
+&gt;&gt;&gt; print statinfo.st_size
+518045444
+</code></pre>
+
+<p>The following are the counts of the various node types in the input file:</p>
+
+<pre><code>{'bounds': 1,
+ 'member': 7683,
+ 'nd': 2829895,
+ 'node': 2564072,
+ 'osm': 1,
+ 'relation': 741,
+ 'tag': 819970,
+ 'way': 216498}
+</code></pre>
+
+<p>Exploration of the data has been done to prevent issues while loading the data in MongoDB. The result is the following:</p>
+
+<pre><code>{'lower': 498201, 'lower_colon': 276537, 'other': 45231, 'problemchars': 1}
+</code></pre>
+
+<p>The above categories have been formed by comparing the key value to various regular expressions written in the code leading to the above result.</p>
+
+<h4>
+<a id="number-of-documents" class="anchor" href="#number-of-documents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of documents</h4>
+
+<pre><code>&gt;&gt;&gt; db.data.find().count()
+2781311
+</code></pre>
+
+<h4>
+<a id="number-of-nodes" class="anchor" href="#number-of-nodes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of nodes</h4>
+
+<pre><code>&gt;&gt;&gt; db.data.find({"type":"node"}).count()
+2564072
+</code></pre>
+
+<h4>
+<a id="number-of-ways" class="anchor" href="#number-of-ways" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of ways</h4>
+
+<pre><code>&gt;&gt;&gt; db.data.find({"type":"way"}).count()
+216498
+</code></pre>
+
+<h4>
+<a id="number-of-relations" class="anchor" href="#number-of-relations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of relations</h4>
+
+<pre><code>&gt;&gt;&gt; db.data.find({"type":"relation"}).count()
+741
+</code></pre>
+
+<h4>
+<a id="number-of-unique-users" class="anchor" href="#number-of-unique-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of unique users</h4>
+
+<pre><code>&gt;&gt;&gt; len(db.data.distinct("created.user"))
+724
+</code></pre>
+
+<h4>
+<a id="top-1-contributing-user" class="anchor" href="#top-1-contributing-user" aria-hidden="true"><span class="octicon octicon-link"></span></a>Top 1 contributing user</h4>
+
+<pre><code>&gt;&gt;&gt; x = db.data.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$sort":{"count":-1}}, {"$limit":1}])
+&gt;&gt;&gt; print list(x)
+[{u'count': 2136690, u'_id': u'jumbanho'}]
+</code></pre>
+
+<pre><code>&gt;&gt;&gt; x = db.data.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$group":{"_id":"$count", "num_users
+":{"$sum":1}}}, {"$sort":{"_id":1}}, {"$limit":1}])
+&gt;&gt;&gt; print list(x)
+[{u'num_users': 150, u'_id': 1}]
+</code></pre>
 
 <h3>
-<a id="author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h3>
+<a id="additional-ideas" class="anchor" href="#additional-ideas" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Ideas</h3>
 
-<p>The above project was done as part of the 'Data Analayst Nanodegree' by Roshan Shetty. Please contact me on <a href="mailto:rosshanabshetty@gmail.com">rosshanabshetty@gmail.com</a> for any doubts, queries or information.</p>
+<h4>
+<a id="contributor-statistics-and-gamification-suggestion" class="anchor" href="#contributor-statistics-and-gamification-suggestion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributor statistics and gamification suggestion</h4>
+
+<p>Few users contribute to the most data which suggests automated entry of some admin. Here are some statistics:</p>
+
+<ul>
+<li>
+</ul>
 
       <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/Inquisitive-Geek/OpenStreetMaps_Raleigh_Data_Wrangling_with_MongoDB">OpenStreeMaps Raleigh, NC Data Wrangling With MongoDB</a> is maintained by <a href="https://github.com/Inquisitive-Geek">Inquisitive-Geek</a>.</span>
+        <span class="site-footer-owner"><a href="https://github.com/Inquisitive-Geek/OSM_Raleigh_Data_Wrangling_with_MongoDB">OpenStreeMaps Raleigh, NC Data Wrangling With MongoDB</a> is maintained by <a href="https://github.com/Inquisitive-Geek">Inquisitive-Geek</a>.</span>
 
         <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
