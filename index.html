@@ -19,13 +19,13 @@
     </section>
 
     <section class="main-content">
-      <h3>
-<a id="background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h3>
+      <h2>
+<a id="background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h2>
 
 <p>Using a <a href="https://www.openstreetmap.org">Open Street Maps</a> extract of Raleigh, NC from <a href="https://s3.amazonaws.com/metro-extracts.mapzen.com/raleigh_north-carolina.osm.bz2">MapZen</a>, data munging techniques - such as assessing the quality of the data for validity, accuracy, completeness, consistency and uniformity - were used to clean the OpenStreetMap data and were loaded into a MongoDB instance. MongoDB queries were then run to analyze the data. The data validation and audit was performed in Python. The code and other extracts can be downloaded using the 'Download .zip' link above.</p>
 
-<h3>
-<a id="problems-encountered-in-the-map" class="anchor" href="#problems-encountered-in-the-map" aria-hidden="true"><span class="octicon octicon-link"></span></a>Problems Encountered in the Map</h3>
+<h2>
+<a id="problems-encountered-in-the-map" class="anchor" href="#problems-encountered-in-the-map" aria-hidden="true"><span class="octicon octicon-link"></span></a>Problems Encountered in the Map</h2>
 
 <p>After initially downloading a small sample size of the Raleigh data and running it against a provisional data.py file, I noticed three main problems with the data, which I will discuss in the following order:</p>
 
@@ -38,15 +38,15 @@
 <em>Postal codes:</em> There are a lot of postal codes which don’t pertain to Raleigh, NC. Some investigation is done around it to find out the root cause.</li>
 </ul>
 
-<h4>
+<h3>
 <a id="multiple-streets-for-a-node-" class="anchor" href="#multiple-streets-for-a-node-" aria-hidden="true"><span class="octicon octicon-link"></span></a>*<em>Multiple streets for a node *</em>
-</h4>
+</h3>
 
 <p>There are some tags which contain field values like “Street_1” and “Street_2”. They seem be the adjoining streets of a building and hence the attributes are kept as they are. </p>
 
-<h4>
+<h3>
 <a id="postal-codes" class="anchor" href="#postal-codes" aria-hidden="true"><span class="octicon octicon-link"></span></a><strong>Postal codes</strong>
-</h4>
+</h3>
 
 <p>Raleigh postal codes are in this range - 27587, 27601, 27605, 27608, 27609, 27612, 27613, 27614, 27615, 27616.[3] The database contains a lot of other values though. A lot of postal codes don’t refer to Raleigh, NC but the surrounding areas. </p>
 
@@ -75,8 +75,8 @@ ake Forest'}, {u'count': 2, u'_id': u'durham'}, {u'count': 2, u'_id': u'chapel H
 
 <p>Cities like Apex and Morrisville which are around Raleigh are also included in this extract. So the data gives info of Raleigh and its surrounding areas.</p>
 
-<h3>
-<a id="data-overview" class="anchor" href="#data-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Overview</h3>
+<h2>
+<a id="data-overview" class="anchor" href="#data-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Overview</h2>
 
 <p>This section contains basic statistics about the dataset and the MongoDB queries used to gather them.</p>
 
@@ -154,23 +154,88 @@ ake Forest'}, {u'count': 2, u'_id': u'durham'}, {u'count': 2, u'_id': u'chapel H
 [{u'count': 2136690, u'_id': u'jumbanho'}]
 </code></pre>
 
+<h4>
+<a id="number-of-users-appearing-only-once-having-1-post" class="anchor" href="#number-of-users-appearing-only-once-having-1-post" aria-hidden="true"><span class="octicon octicon-link"></span></a>Number of users appearing only once (having 1 post)</h4>
+
 <pre><code>&gt;&gt;&gt; x = db.data.aggregate([{"$group":{"_id":"$created.user", "count":{"$sum":1}}}, {"$group":{"_id":"$count", "num_users
 ":{"$sum":1}}}, {"$sort":{"_id":1}}, {"$limit":1}])
 &gt;&gt;&gt; print list(x)
 [{u'num_users': 150, u'_id': 1}]
 </code></pre>
 
-<h3>
-<a id="additional-ideas" class="anchor" href="#additional-ideas" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Ideas</h3>
+<h2>
+<a id="additional-ideas" class="anchor" href="#additional-ideas" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Ideas</h2>
 
-<h4>
-<a id="contributor-statistics-and-gamification-suggestion" class="anchor" href="#contributor-statistics-and-gamification-suggestion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributor statistics and gamification suggestion</h4>
+<h3>
+<a id="contributor-statistics-and-gamification-suggestion" class="anchor" href="#contributor-statistics-and-gamification-suggestion" aria-hidden="true"><span class="octicon octicon-link"></span></a><strong>Contributor statistics and gamification suggestion</strong>
+</h3>
 
 <p>Few users contribute to the most data which suggests automated entry of some admin. Here are some statistics:</p>
 
 <ul>
-<li>
+<li>Top user contribution percentage (“jumbanho”) – 76.82%</li>
+<li>Top user contribution percentage (“jumbanho”) – 76.82%</li>
 </ul>
+
+<p>It is clear that the contribution of the top 10 users is too high as compared to the total number of users (724). If some incentives are given to the users to contribute more, it will help spur the data entry process and will also provide more quality to the data. </p>
+
+<h3>
+<a id="additional-data-exploration-using-mongodb-queries" class="anchor" href="#additional-data-exploration-using-mongodb-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a><strong>Additional data exploration using MongoDB queries</strong>
+</h3>
+
+<h4>
+<a id="top-10-appearing-amenities" class="anchor" href="#top-10-appearing-amenities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Top 10 appearing amenities</h4>
+
+<pre><code>&gt;&gt;&gt; amenity_list = list(db.data.aggregate([{"$match":{"amenity":{"$exists":1}}},{"$group":{"_id":"$amenity","count":{"$s
+um":1}}},{"$sort":{"count":-1}},{"$limit":10}]))
+&gt;&gt;&gt; amenity_list
+
+[{u'count': 1935, u'_id': u'parking'}, {u'count': 551, u'_id': u'place_of_worship'}, {u'count': 523, u'_id': u'bicycle_p
+arking'}, {u'count': 499, u'_id': u'restaurant'}, {u'count': 254, u'_id': u'fast_food'}, {u'count': 227, u'_id': u'schoo
+l'}, {u'count': 205, u'_id': u'fuel'}, {u'count': 130, u'_id': u'bench'}, {u'count': 112, u'_id': u'bank'}, {u'count': 1
+08, u'_id': u'swimming_pool'}]          
+</code></pre>
+
+<h4>
+<a id="top-10-appearing-shops" class="anchor" href="#top-10-appearing-shops" aria-hidden="true"><span class="octicon octicon-link"></span></a>Top 10 appearing shops</h4>
+
+<pre><code>&gt;&gt;&gt; shop_list = list(db.data.aggregate([{"$match":{"shop":{"$exists":1}}},{"$group":{"_id":"$shop","count":{"$sum":1}}},
+{"$sort":{"count":-1}},{"$limit":10}]))
+&gt;&gt;&gt;
+&gt;&gt;&gt; shop_list
+[{u'count': 147, u'_id': u'convenience'}, {u'count': 117, u'_id': u'supermarket'}, {u'count': 94, u'_id': u'clothes'}, {
+u'count': 57, u'_id': u'car_repair'}, {u'count': 56, u'_id': u'hairdresser'}, {u'count': 52, u'_id': u'vacant'}, {u'coun
+t': 46, u'_id': u'mall'}, {u'count': 36, u'_id': u'department_store'}, {u'count': 36, u'_id': u'beauty'}, {u'count': 27,
+ u'_id': u'jewelry'}]
+</code></pre>
+
+<h4>
+<a id="most-popular-supermarkets" class="anchor" href="#most-popular-supermarkets" aria-hidden="true"><span class="octicon octicon-link"></span></a>Most popular supermarkets</h4>
+
+<pre><code>&gt;&gt;&gt; supermarket_list = list(db.data.aggregate([{"$match":{"shop":{"$exists":1},"shop":"supermarket"}},{"$group":{"_id":"
+$name","count":{"$sum":1}}},{"$sort":{"count":-1}},{"$limit":2}]))
+&gt;&gt;&gt; supermarket_list
+[{u'count': 22, u'_id': u'Food Lion'}, {u'count': 22, u'_id': u'Harris Teeter'}]
+</code></pre>
+
+<h2>
+<a id="conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h2>
+
+<p>After this review of the data it’s obvious that the Raleigh area data is incomplete, though I believe it has been well cleaned for the purposes of this exercise. It interests me to notice a fair amount of GPS data makes it into OpenStreetMap.org on account of users’ efforts, whether by scripting a map editing bot or otherwise. With a rough GPS data processor in place and working together with a more robust data processor similar to code.py, I think it would be possible to input a great amount of cleaned data to OpenStreetMap.org.</p>
+
+<h2>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span class="octicon octicon-link"></span></a>References</h2>
+
+<ol>
+<li><a href="http://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python">http://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python</a></li>
+<li><a href="http://stackoverflow.com/questions/30333020/mongodb-pymongo-aggregate-gives-strange-output-something-about-cursor">http://stackoverflow.com/questions/30333020/mongodb-pymongo-aggregate-gives-strange-output-something-about-cursor</a></li>
+<li><a href="http://www.city-data.com/zipmaps/Raleigh-North-Carolina.html#ixzz3kIKkAXfLA">http://www.city-data.com/zipmaps/Raleigh-North-Carolina.html#ixzz3kIKkAXfLA</a></li>
+</ol>
+
+<h2>
+<a id="author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>The above project was done as part of the 'Data Analayst Nanodegree' by Roshan Shetty. Please contact me on <a href="mailto:rosshanabshetty@gmail.com">rosshanabshetty@gmail.com</a> for any doubts, queries or information.</p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/Inquisitive-Geek/OSM_Raleigh_Data_Wrangling_with_MongoDB">OpenStreeMaps Raleigh, NC Data Wrangling With MongoDB</a> is maintained by <a href="https://github.com/Inquisitive-Geek">Inquisitive-Geek</a>.</span>
